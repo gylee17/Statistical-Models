@@ -1,0 +1,89 @@
+# description: This program processes the restaurants file
+# author: Jane Lee
+# create a list from the file given in class
+
+restFile = open('restaurants.txt', 'r')
+linez = restFile.readlines()
+print (linez) #readlines() turns text file into a list
+print("\n print list line by line")
+
+for r in linez:
+  print (r)
+print ("end line by line print")
+
+# create 2D List of string with blanks removed
+rest2DList=[[s.lstrip().rstrip()for s in x.split(',')]for x in linez]
+
+# print the 2D List in raw form
+print (rest2DList)
+for i in range(len(rest2DList)):
+  print(rest2DList[i],"\n") #print 2D list line by line
+
+## Extracting the cuisine with the highest average rating and the rating
+cuisinelist=['French','Mediterranean','Seafood','Japanese','Italian','
+American','Indian','Korean','Sandwiches']
+
+cuisineavg=[]
+for y in range(len(cuisinelist)):
+  n=0
+  totalrate=0 #sum of total ratings for certain cuisine
+  avgrate=0 #initiate
+  avglist=[]
+  for x in range(len(rest2DList)):
+    if cuisinelist[y]==rest2DList[x][2]:
+      n+=1
+      totalrate+=float(rest2DList[x][4])
+  avgrate=totalrate/n
+cuisineavg.append(avgrate)
+
+# for-loop finds the highest value in list
+highest=0
+for z in range(len(cuisineavg)):
+  if z+1<=len(cuisineavg)-1:
+    if cuisineavg[z+1]>=highest:
+      highest=cuisineavg[z+1] #finds which cuisine has highest value
+
+cuisinehigh=cuisinelist[cuisineavg.index(highest)]
+#print results
+print('\nA) The cuisine with the highest avgerage rating:')
+print(cuisinehigh,",",highest)
+
+## Extracting the cuisine with the lowest average rating and the rating
+lowest=5.0
+for z in range(len(cuisineavg)):
+  if z+1<=len(cuisineavg)-1:
+    if cuisineavg[z+1]<=lowest:
+      lowest=cuisineavg[z+1]
+cuisinelow=cuisinelist[cuisineavg.index(lowest)]
+
+# print results
+print('\nB) The cuisine with the lowest average rating:')
+print(cuisinelow,",",round(lowest,3))
+
+## Extracting the restaraunt with the highest average rating and the rating
+highest_rating = 0
+for i in range(len(rest2DList)):
+  if rest2DList[i][4] > str(highest_rating):
+    highest_rating = rest2DList[i][4]
+    cname=rest2DList[i][0]
+
+# print results
+print ("\nC) Highest rated restaurant:")
+print(cname,",",highest_rating)
+
+## Extracting the most expensive restaurant(s) with the dollar rating
+exp_list = []
+rest_list = []
+for i in range(len(rest2DList)):
+  exp_list.append(rest2DList[i][3])
+expense = max(exp_list)
+
+# create a loop to make a list of all the expensive restaurants
+for i in range(len(rest2DList)):
+  if rest2DList[i][3] == expense:
+    rest_list.append(rest2DList[i][0])
+
+# print the list of restaraunts as individuals
+print ("\nD) The most expensive restaurant(s):",)
+for i in range(len(rest_list)):
+  print (rest_list[i],",",expense)
