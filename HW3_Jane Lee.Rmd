@@ -1,0 +1,292 @@
+---
+title: "HW 3_Jane Lee"
+output:
+  pdf_document:
+    latex_engine: xelatex
+date: "2024-11-05"
+---
+
+## R Markdown
+
+```{r Q1a}
+# Question 1a
+## load libraries
+install.packages("dplyr")
+library(dplyr)
+
+## load data
+chicago_taxi <- read.csv("chicago_taxi_trip_sample.csv")
+
+## check unique values in hour and pickup_area
+print("Unique values in 'hour':")
+print(unique(chicago_taxi$hour))
+
+print("Unique values in 'pickup_area':")
+print(unique(chicago_taxi$pickup_area))
+
+## create "hour_type" variable based on hour categories
+# "Rush Hour" for peak times, "Night" for hours between 0-5, and "Other" for all other times
+chicago_taxi <- chicago_taxi %>%
+  mutate(hour_type = case_when(
+    hour %in% c(7, 8, 9, 16, 17, 18) ~ "Rush Hour",
+    hour %in% 0:5 ~ "Night",
+    TRUE ~ "Other"
+  ))
+
+## ensure hour_type and pickup_area are factors
+chicago_taxi$hour_type <- as.factor(chicago_taxi$hour_type)
+chicago_taxi$pickup_area <- as.factor(chicago_taxi$pickup_area)
+
+## check levels of hour_type and pickup_area after conversion
+print("Levels in 'hour_type':")
+print(levels(chicago_taxi$hour_type))
+
+print("Levels in 'pickup_area':")
+print(levels(chicago_taxi$pickup_area))
+
+## linear regression model with hour_type and pickup_area
+model <- lm(trip_seconds ~ hour_type + pickup_area, data = chicago_taxi)
+summary(model)
+
+## r-squared value
+r_squared <- summary(model)$r.squared
+print(paste("R-squared:", r_squared))
+
+## number of parameters (including intercept and all levels, implicitly including 'Other' as the baseline)
+# now have 1 intercept, 2 parameters for hour_type (3 levels minus 1), and 3 for pickup_area (4 levels minus 1).
+num_parameters <- 1 + (length(levels(chicago_taxi$hour_type)) - 1) + (length(levels(chicago_taxi$pickup_area)) - 1)
+print(paste("Number of parameters:", num_parameters))
+
+## fitted model equation (only showing non-baseline levels)
+# since 'Other' is the baseline for both hour_type and pickup_area, it is not explicitly listed in the equation.
+coefficients <- coef(model)
+fitted_model <- paste("y =", round(coefficients[1], 2),
+                      "+", round(coefficients[2], 2), "* 1{hour_type = 'Rush Hour'}",
+                      "+", round(coefficients[3], 2), "* 1{hour_type = 'Night'}",
+                      "+", round(coefficients[4], 2), "* 1{pickup_area = 'Downtown'}",
+                      "+", round(coefficients[5], 2), "* 1{pickup_area = 'Midway'}",
+                      "+", round(coefficients[6], 2), "* 1{pickup_area = 'O'Hare'}")
+print("Fitted model equation:")
+print(fitted_model)
+
+## predicted value when hour_type = 'Rush Hour' and pickup_area = 'Downtown'
+new_data <- data.frame(hour_type = "Rush Hour", pickup_area = "Downtown")
+predicted_value <- predict(model, newdata = new_data)
+print(paste("Predicted trip_seconds for Rush Hour and Downtown:", predicted_value))   
+```
+
+
+```{r Q1b}
+# Question 1b
+## linear regression
+model_interaction <- lm(trip_seconds ~ hour_type * pickup_area, data = chicago_taxi)
+summary(model_interaction)
+
+## r-squared value
+r_squared_interaction <- summary(model_interaction)$r.squared
+print(paste("R-squared of the model with categorical interaction:", r_squared_interaction))
+
+## number of parameters
+## have 3 levels of hour_type, 4 levels of pickup_area, plus their interactions.
+## (3 - 1) * (4 - 1) + 3 + 4 = 11 beta parameters including the intercept
+num_parameters_interaction <- length(coef(model_interaction))
+print(paste("Number of parameters in the model:", num_parameters_interaction))
+
+## predicted value when hour_type = Rush Hour and pickup_area = O'Hare
+new_data_interaction <- data.frame(hour_type = "Rush Hour", pickup_area = "O'Hare")
+predicted_value_interaction <- predict(model_interaction, newdata = new_data_interaction)
+print(paste("Predicted trip_seconds for Rush Hour and O'Hare:", predicted_value_interaction))
+
+## sample mean of trip_seconds for each combination of hour_type and pickup_area
+mean_trip_seconds <- chicago_taxi %>%
+  group_by(hour_type, pickup_area) %>%
+  summarize(mean_trip_seconds = mean(trip_seconds, na.rm = TRUE)) %>%
+  ungroup()
+
+print("Sample means of trip_seconds for each combination of hour_type and pickup_area:")
+print(mean_trip_seconds)
+
+## combination with the smallest sample mean of trip_seconds
+smallest_mean <- mean_trip_seconds %>% 
+  filter(mean_trip_seconds == min(mean_trip_seconds))
+print("Combination with the smallest sample mean of trip_seconds:")
+print(smallest_mean)
+
+## relationship between sample means vs fitted B's coefficients
+print("The sample means reflect the observed average trip_seconds for each combination of categories, whereas the model predictions are estimated values derived from the fitted coefficients. While the predictions may not match the sample means exactly—since the model aims to fit a linear relationship, they should provide a close approximation.")
+
+## why the number of B's parameters makes sense
+print("The model includes both main effects and interaction terms, resulting in 12 parameters. This number aligns with the expected structure based on the levels of each categorical variable, ensuring that all unique category combinations are accounted for.")
+```
+
+```{r Q1c}
+# Question 1c
+## ensure hour_type, pickup_area, and fare are factors/numeric where appropriate
+chicago_taxi$hour_type <- as.factor(chicago_taxi$hour_type)
+chicago_taxi$pickup_area <- as.factor(chicago_taxi$pickup_area)
+chicago_taxi$fare <- as.numeric(chicago_taxi$fare)
+
+## linear regression with fare interaction
+model_fare_interaction <- lm(trip_seconds ~ hour_type * pickup_area + fare * (hour_type * pickup_area), data = chicago_taxi)
+summary(model_fare_interaction)
+
+## r-squared value
+r_squared_fare_interaction <- summary(model_fare_interaction)$r.squared
+print(paste("R-squared:", r_squared_fare_interaction))
+
+## number of parameters
+## model has multiple terms due to the interactions between hour_type, pickup_area, and far
+num_parameters_fare_interaction <- length(coef(model_fare_interaction))
+print(paste("Number of parameters:", num_parameters_fare_interaction))
+
+## why the number of B's parameters make sense
+print("The model fits a separate linear regression for trip_seconds vs fare for each combination of hour_type and pickup_area, which is why it includes multiple beta parameters to account for each specific combination.")
+
+## values of a0 and a1
+coefficients <- coef(model_fare_interaction)
+
+a0 <- coefficients["(Intercept)"] +
+      coefficients["hour_typeRush Hour"] +
+      coefficients["pickup_areaO'Hare"] +
+      coefficients["hour_typeRush Hour:pickup_areaO'Hare"]
+
+a1 <- coefficients["fare"] +
+      coefficients["hour_typeRush Hour:fare"] +
+      coefficients["pickup_areaO'Hare:fare"] +
+      coefficients["hour_typeRush Hour:pickup_areaO'Hare:fare"]
+
+print(paste("a_0 for Rush Hour and O'Hare:", round(a0, 2)))
+print(paste("a_1 for Rush Hour and O'Hare:", round(a1, 2)))
+
+## verify answer of a0 and a1
+subset_data <- subset(chicago_taxi, hour_type == "Rush Hour" & pickup_area == "O'Hare")
+
+verification_model <- lm(trip_seconds ~ fare, data = subset_data)
+summary(verification_model)
+
+a0_verification <- coef(verification_model)[1]
+a1_verification <- coef(verification_model)[2]
+
+print(paste("Verified a_0 for Rush Hour and O'Hare:", a0_verification))
+print(paste("Verified a_1 for Rush Hour and O'Hare:", a1_verification))
+
+```
+
+```{r Q1d}
+# Question 1d
+## ensure hour_type, pickup_area, and fare are factors/numeric where appropriate
+chicago_taxi$hour_type <- as.factor(chicago_taxi$hour_type)
+chicago_taxi$pickup_area <- as.factor(chicago_taxi$pickup_area)
+chicago_taxi$fare <- as.numeric(chicago_taxi$fare)
+
+## 3-way interaction model
+model_three_way <- lm(trip_seconds ~ hour_type * pickup_area * fare, data = chicago_taxi)
+
+## summary of the model
+summary(model_three_way)
+
+
+## relation to the model in Question 1c
+print("The model in Question 1c specifies each interaction term individually, while the three-way interaction model combines them into a single formula. Both models capture unique intercepts and slopes for each hour_type and pickup_area combination with fare, but the three-way model is more concise. Although specified differently, both models are expected to produce similar predictions and coefficients for each combination, as they include the same interaction effects.")
+
+```
+
+
+```{r Q2a}
+# Question 2a
+## set parameters
+num.of.estimate <- 1000000
+sample.means <- numeric(num.of.estimate)
+
+## simulation
+for (i in seq_len(num.of.estimate)) {
+  n <- 10
+  x <- rnorm(n, mean = 7, sd = 2)
+  sample.means[i] <- mean(x)
+}
+
+## calculate the mean of sample means
+mean_sample_means <- mean(sample.means)
+print(paste("Mean of sample means:", mean_sample_means))
+
+```
+
+```{r Q2b}
+# Question 2b
+## set parameters
+num.of.estimate <- 1000000
+sample.medians <- numeric(num.of.estimate)
+
+## simulation
+for (i in seq_len(num.of.estimate)) {
+  n <- 10
+  x <- rnorm(n, mean = 7, sd = 2)
+  sample.medians[i] <- median(x)
+}
+
+## calculate the mean of sample medians
+mean_sample_medians <- mean(sample.medians)
+print(paste("Mean of sampe medians:", mean_sample_medians))
+
+## unbiased sample median
+print("The mean of sample.medians is close to 7, suggesting that the sample median is approximately an unbiased estimator for 𝜇.")
+
+```
+
+```{r Q2c}
+# Question 2c
+## set parameters
+num.of.estimate <- 1000000
+sample.midranges <- numeric(num.of.estimate)
+
+## simulation
+for (i in seq_len(num.of.estimate)) {
+  n <- 10
+  x <- rnorm(n, mean = 7, sd = 2)
+  sample.midranges[i] <- (min(x) + max(x)) / 2
+}
+
+## calculate the mean of sample mid-ranges
+mean_sample_midranges <- mean(sample.midranges)
+print(paste("Mean of sample mid-ranges:", mean_sample_midranges))
+
+## unbiased mid-range estimator
+print("The mean of sample.midranges is close to 7, suggesting that the sample mid-range is approximately an unbiased estimator for 𝜇.")
+
+```
+
+
+```{r Q2d}
+# Question 2d
+
+## re-set parameters
+num.of.estimate <- 1000000
+sample.means <- numeric(num.of.estimate)
+sample.medians <- numeric(num.of.estimate)
+sample.midranges <- numeric(num.of.estimate)
+
+## re-run the simulation
+for (i in seq_len(num.of.estimate)) {
+  n <- 10
+  x <- rnorm(n, mean = 7, sd = 2)
+  
+## re-calculate sample mean, median, and mid-range
+  sample.means[i] <- mean(x)
+  sample.medians[i] <- median(x)
+  sample.midranges[i] <- (min(x) + max(x)) / 2
+}
+
+## calculate variances
+var_sample_means <- var(sample.means)
+var_sample_medians <- var(sample.medians)
+var_sample_midranges <- var(sample.midranges)
+
+## print variances
+print(paste("Variance of sample means:", var_sample_means))
+print(paste("Variance of sample medians:", var_sample_medians))
+print(paste("Variance of sample mid-ranges:", var_sample_midranges))
+
+## result
+print("The sample mean has the lowest variance among the three estimators. Therefore,the sample mean is considered the best estimator for 𝜇based on the Minimum-Variance Unbiased Estimator (UMVUE) criterion.")
+
+```
