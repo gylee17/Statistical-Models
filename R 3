@@ -1,5 +1,4 @@
 ---
-title: "HW 3_Jane Lee"
 output:
   pdf_document:
     latex_engine: xelatex
