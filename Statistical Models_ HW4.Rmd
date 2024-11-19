@@ -1,0 +1,117 @@
+---
+title: "HW 4_Jane Lee"
+output:
+  pdf_document:
+    latex_engine: xelatex
+date: "2024-11-17"
+---
+
+## R Markdown
+
+```{r Q1}
+# Question 1
+## prob of being 4 STD away for normal distribution
+tail_prob <- 2 * (1-pnorm(4))
+
+## convert to frequency
+frequency <- 1 / tail_prob
+
+## results
+tail_prob
+frequency
+
+```
+
+
+```{r Q2}
+# Question 2
+## calculate STD with 5 degrees of freedom
+df <- 5
+std <- sqrt(df / (df - 2))
+
+## prob of being 4 STD away for t distribution
+tail_prob2 <- 2 * (1 - pt(4, df = df))
+
+## convert to frequency
+frequency2 <- 1 / tail_prob2
+
+## results
+std
+tail_prob2
+frequency2
+
+```
+
+
+```{r Q3}
+# Question 3
+## generate a sequence of x-values from -5 to 5
+x <- seq(-5, 5, length.out = 10000)
+
+## calculate CDF of t-distribution with 4 degrees of freedom
+cdf_t <- pt(x, df = 4)
+
+## calculate CDF of standard normal distribution
+cdf_n <- pnorm(x)
+
+## calculate maximum gap between the CDFs
+max_gap <- max(abs(cdf_t - cdf_n))
+max_gap
+
+## find minimum degrees of freedom for which max gap is < 0.001
+min_v <- 4
+repeat {
+  cdf_t_v <- pt(x, df = min_v)
+  gap <- max(abs(cdf_t_v - cdf_n))
+  if (gap < 0.001) break
+  min_v <- min_v + 1
+}
+min_v
+
+```
+
+
+```{r Q4}
+# Question 4
+## number of simulations
+num.of.repeat <- 10000
+sigma.sq.hat <- numeric(num.of.repeat)
+
+for (i in seq_len(num.of.repeat)) {
+  ## step 1: simulate design matrix X
+  n <- 100
+  d <- 5
+  X <- cbind(1, matrix(rnorm(n * d), n, d))
+  
+  ## step 2: simulate response y
+  beta <- 1:(d + 1) # true parameter
+  sigma.sq <- 0.09 # true parameter
+  y <- X %*% beta + rnorm(n, sd = sqrt(sigma.sq))
+  
+  ## step 3: fit linear regression model
+  data <- data.frame(X,y)
+  model <- lm(y ~ ., data = data)
+  
+  ## step 4: compute variance of residuals
+  sigma.sq.hat[i] <- var(residuals(model)) # based on 1 / (n-1) * sum(...)
+}
+
+## calculate mean of sigma.sq.hat
+mean_sigma_sq_hat <- mean(sigma.sq.hat)
+
+## compute p (number of parameters)
+p <- length(beta)
+
+## adjusted mean
+adjusted_mean <- mean(sigma.sq.hat * (n-1) / (n-p)) # unbiased for sigma.sq
+
+## results
+mean_sigma_sq_hat
+print("The result implies that Step 4 tends to underestimate the true value of the𝜎2 parameter. In Step 4, the variance of residuals is calculated using 1/(n-1), which doesn't account for the p model parameters. The bias is corrected by applying (n-1)/(n-p), which adjusts for the degrees of freedom used by the model.")
+adjusted_mean
+
+
+```
+
+
+
