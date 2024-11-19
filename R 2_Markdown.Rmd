@@ -9,7 +9,7 @@ author: "Jane Lee"
 
 ## R Markdown
 
-
+```{r Q1a}
 # Question 1a
 y <- c(2, 5, 4.3, 4.2, 8) # Observed data
 compute.mse <- Vectorize(function(b0) {
@@ -36,6 +36,7 @@ if (mean(y) == b0_optimal) {
 }else {
   print("optimal b0 value does not equal to mean(y)")
 }
+```
 
 
 ```{r Q1b}
